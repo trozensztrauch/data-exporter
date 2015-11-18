@@ -74,6 +74,15 @@ static uint8_t md_nne_handle_gps_event(struct md_writer_nne *mwn,
         return RETVAL_FAILURE;
     }    
 
+    if (isnan(mge->latitude) || mge->latitude > 1e6 || mge->latitude < -1e6)
+        return RETVAL_FAILURE;
+
+    if (isnan(mge->longitude) || mge->longitude > 1e6 || mge->longitude < -1e6)
+        return RETVAL_FAILURE;
+
+    if (isnan(mge->speed) || mge->speed > 1e6 || mge->speed < -1e6)
+        return RETVAL_FAILURE;
+
     retval = snprintf(xml_buf, sizeof(xml_buf),
                       "<d e=\"0\"><lat>%f</lat><lon>%f</lon><speed>%f</speed></d>",
                       mge->latitude, mge->longitude, mge->speed);
