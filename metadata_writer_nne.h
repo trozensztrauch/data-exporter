@@ -135,6 +135,13 @@ struct nne_message
     uint64_t delta;
 };
 
+struct nne_network
+{
+    LIST_ENTRY(nne_network) entries;
+    char imsi[16];
+    uint32_t network_id;
+};
+
 struct md_writer_nne {
     MD_WRITER;
 
@@ -157,6 +164,7 @@ struct md_writer_nne {
     LIST_HEAD(nne_modem_list, nne_modem) modem_list;
     struct backend_timeout_handle *timeout_handle;
     uint64_t timeout_tstamp;
+    LIST_HEAD(nne_network_list, nne_network) network_list;
 };
 
 void md_nne_setup(struct md_exporter *mde, struct md_writer_nne* mwn);

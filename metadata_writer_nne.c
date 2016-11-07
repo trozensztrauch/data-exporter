@@ -595,27 +595,21 @@ static void md_nne_check_removed_modems(struct md_writer_nne *mwn,
     }
 }
 
-static uint32_t md_find_network_id(uint32_t imsi_mccmnc, uint32_t nw_mccmnc)
+static uint32_t md_find_network_id(struct md_writer_nne *mwn, const char *imsi)
 {
-    uint32_t network_id = 0;
-    switch (imsi_mccmnc) {
-    case 24201:
-        network_id = 1;
-        break; 
-    case 24202:
-        network_id = 2;
-        break; 
-    case 24214:
-        if (nw_mccmnc != 24202)
-            network_id = 18;
-        else
-            network_id = 19;
-        break; 
-    case 26001:
-        network_id = 9;
-        break;
+    struct nne_network *network;
+    size_t len;;
+
+    if (imsi == NULL)
+        return 0;
+    len = strlen(imsi);
+    LIST_FOREACH(network, &(mwn->network_list), entries)
+    {
+        if (!strncmp(imsi,network->imsi, len))
+            return network->network_id;
     }
-    return network_id;
+
+    return 0;
 }
 
 static void md_nne_handle_iface_event(struct md_writer_nne *mwn,
@@ -638,6 +632,7 @@ static void md_nne_handle_iface_event(struct md_writer_nne *mwn,
     META_PRINT_SYSLOG(mwn->parent, LOG_ERR, "NNE writer: %s: "
                       "ip_addr=%s, "
                       "ifname=%s, "
+                      "imsi=%s, "
                       "imsi_mccmnc=%d, "
                       "nw_mccmnc=%d, "
                       "cid=%d, "
@@ -653,6 +648,7 @@ static void md_nne_handle_iface_event(struct md_writer_nne *mwn,
                       iface_event_type[mie->event_param],
                       mie->ip_addr,
                       mie->ifname,
+                      mie->imsi,
                       mie->imsi_mccmnc,
                       mie->nw_mccmnc,
                       mie->cid,
@@ -671,12 +667,15 @@ static void md_nne_handle_iface_event(struct md_writer_nne *mwn,
     uint32_t network_id;
     int i;
 
+
     // Get network_id and check if it is supported
-    network_id = md_find_network_id(mie->imsi_mccmnc, mie->nw_mccmnc);
+    network_id = md_find_network_id(mwn, mie->imsi);
+    META_PRINT_SYSLOG(mwn->parent, LOG_INFO, "NNE writer: "
+            "network: imsi %s network_id %u\n",
+            mie->imsi, network_id);
     if (network_id == 0) {
-        META_PRINT_SYSLOG(mwn->parent, LOG_INFO,
-            "NNE writer: unsupported network imsi_mccmnc: %d, nw_mccmnc %d\n",
-            mie->imsi_mccmnc, mie->nw_mccmnc);
+        META_PRINT_SYSLOG(mwn->parent, LOG_INFO, "NNE writer: "
+                "unsupported subcriber: imsi: %s\n", mie->imsi);
         return;
     }
 
@@ -863,6 +862,8 @@ static void md_nne_handle_timeout(void *ptr)
 static int32_t md_nne_init(void *ptr, json_object* config)
 {
     struct md_writer_nne *mwn = ptr;
+    struct json_object *subconfig, *netconfig;
+    struct nne_network *network;
     size_t retval;
 
     strcpy(mwn->directory, NNE_DEFAULT_DIRECTORY);
@@ -881,7 +882,6 @@ static int32_t md_nne_init(void *ptr, json_object* config)
     LIST_INIT(&(mwn->modem_list));
     mwn->timeout_tstamp = 0;
 
-    json_object* subconfig;
     if (json_object_object_get_ex(config, "nne", &subconfig)) {
         json_object_object_foreach(subconfig, key, val) {
             if (!strcmp(key, "node_id")) {
@@ -907,6 +907,15 @@ static int32_t md_nne_init(void *ptr, json_object* config)
                     return RETVAL_FAILURE;
                 } else
                     strcpy(mwn->gps_prefix, prefix);
+            }
+            else if (!strcmp(key, "networks")) {
+                json_object_object_get_ex(subconfig, "networks", &netconfig);
+                json_object_object_foreach(netconfig, key, val) {
+                    network = malloc(sizeof(struct nne_network));
+                    LIST_INSERT_HEAD(&(mwn->network_list), network, entries);
+                    strncpy(network->imsi, key, sizeof(network->imsi));
+                    network->network_id = (uint32_t) json_object_get_int(val);
+                }
             }
         }
     }
