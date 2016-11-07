@@ -990,8 +990,13 @@ void md_nne_usage()
     fprintf(stderr, "\"nne\": {\t\tNornet Edge writer.\n");
     fprintf(stderr, "  \"node_id\":\t\tNornet node id (e.g. nne601)\n");
     fprintf(stderr, "  \"interval\":\t\tFile rotation/export interval (in seconds)\n");
-    fprintf(stderr, "  \"gsp_instance\":\t\tNNE measurement instance id for gps\n");
+    fprintf(stderr, "  \"gsp_instance\":\tNNE measurement instance id for gps\n");
     fprintf(stderr, "  \"gps_prefix\":\t\tFile prefix for gps /nne/data/<PREFIX><INSTANCE>.sdat\n");
+    fprintf(stderr, "  \"networks\": {\t\tMapping of imsi (or only mccmnc) to network_id\n");
+    fprintf(stderr, "    \"<IMSI/MCCMNC>\": <NETWORK-ID>\n");
+    fprintf(stderr, "    \"<IMSI/MCCMNC>\": <NETWORK-ID>\n");
+    fprintf(stderr, "    ...\n");
+    fprintf(stderr, "  },\n");
     fprintf(stderr, "},\n");
 }
 
